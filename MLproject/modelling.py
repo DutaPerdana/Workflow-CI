@@ -29,7 +29,8 @@ def eval_and_log_manual(model, X_test, y_test, run_id, input_example=None):
     try:
         auc_roc = roc_auc_score(y_test, y_proba)
     except ValueError:
-        auc_roc = 0.0
+        # Jika hanya ada satu kelas di y_test (kasus jarang)
+        auc_roc = 0.0 
 
     # Log Metrik Secara Manual (WAJIB SKILLED)
     mlflow.log_metric("accuracy", accuracy)
@@ -68,7 +69,7 @@ if __name__ == "__main__":
     # Menerima Parameter dari Command Line (sys.argv)
     # ------------------------------------------------------------------------
     
-    if len(sys.argv) < 3: # Hanya butuh 2 argumen: n_estimators dan max_depth
+    if len(sys.argv) < 3: 
         print("FATAL ERROR: Jumlah argumen tidak sesuai (Membutuhkan n_estimators dan max_depth).")
         sys.exit(1)
     else:
@@ -77,11 +78,12 @@ if __name__ == "__main__":
         max_depth = int(sys.argv[2])
     
     # ------------------------------------------------------------------------
-    # WAJIB FIX PATH: Membangun jalur file secara absolut menggunakan GITHUB_WORKSPACE
+    # WAJIB FIX PATH: Membangun jalur file secara absolut
     # ------------------------------------------------------------------------
     
     GITHUB_ROOT = os.environ.get('GITHUB_WORKSPACE', os.getcwd()) 
-    RELATIVE_DATA_PATH = "MLproject/dataset_preprocessing/preprocessed_data.csv" # Pastikan nama folder ini benar
+    # Pastikan nama folder ini benar sesuai repositori Anda
+    RELATIVE_DATA_PATH = "MLproject/dataset_preprocessing/preprocessed_data.csv"
     file_path = os.path.join(GITHUB_ROOT, RELATIVE_DATA_PATH)
     
     print(f"CI Run Parameters: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={file_path}")
@@ -93,8 +95,7 @@ if __name__ == "__main__":
         print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {file_path}. Gagal Memuat.")
         sys.exit(1)
         
-    # Pisahkan Fitur (X) dan Target (y) - ASUMSI
-    # PERBAIKI NAMA KOLOM TARGET SESUAI FIX SEBELUMNYA (Status_Resiko)
+    # Pisahkan Fitur (X) dan Target (y) - KOREKSI NAMA KOLOM TARGET
     X = data.drop("Status_Resiko", axis=1) 
     y = data["Status_Resiko"]
 
@@ -107,28 +108,35 @@ if __name__ == "__main__":
     # --- 3. Memulai MLflow Run (Single Run CI) ---
     mlflow.set_experiment("CI Workflow Credit Scoring") 
     
-    # Log Run
-    # MENGGUNAKAN 'with mlflow.start_run()' secara eksplisit
-    with mlflow.start_run(run_name=f"CI_n{n_estimators}_d{max_depth}") as run:
-        run_id = run.info.run_id
-        
-        # Log Parameter Secara Manual
-        mlflow.log_param("n_estimators", n_estimators)
-        mlflow.log_param("max_depth", max_depth)
-        mlflow.log_param("data_source", RELATIVE_DATA_PATH)
-        
-        # Model Training
-        model = RandomForestClassifier(
-            n_estimators=n_estimators, 
-            max_depth=max_depth, 
-            random_state=42
-        )
-        model.fit(X_train, y_train)
-        
-        # Evaluasi dan Log Artefak Model
-        current_accuracy = eval_and_log_manual(
-            model, X_test, y_test, run_id, 
-            input_example=input_example
-        )
-        
-        print(f"\nCI Run Selesai. Akurasi: {current_accuracy:.4f}")
+    # Log Run (WAJIB: HAPUS with mlflow.start_run() untuk menghindari konflik)
+    try:
+        # Ambil Run ID aktif yang sudah dimulai oleh MLflow Project Runner
+        run_id = mlflow.last_active_run().info.run_id
+    except:
+        # Fallback jika tidak ada run aktif (biasanya hanya terjadi saat testing lokal)
+        mlflow.start_run()
+        run_id = mlflow.last_active_run().info.run_id
+
+    # Set Run Name
+    mlflow.set_tag("mlflow.runName", f"CI_n{n_estimators}_d{max_depth}")
+    
+    # Log Parameter Secara Manual
+    mlflow.log_param("n_estimators", n_estimators)
+    mlflow.log_param("max_depth", max_depth)
+    mlflow.log_param("data_source", RELATIVE_DATA_PATH)
+    
+    # Model Training
+    model = RandomForestClassifier(
+        n_estimators=n_estimators, 
+        max_depth=max_depth, 
+        random_state=42
+    )
+    model.fit(X_train, y_train)
+    
+    # Evaluasi dan Log Artefak Model
+    current_accuracy = eval_and_log_manual(
+        model, X_test, y_test, run_id, 
+        input_example=input_example
+    )
+    
+    print(f"\nCI Run Selesai. Akurasi: {current_accuracy:.4f}")
