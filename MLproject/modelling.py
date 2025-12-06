@@ -63,28 +63,27 @@ if __name__ == "__main__":
     
     warnings.filterwarnings("ignore")
     # HARDCODE random_state untuk reproducibility di CI
+# ------------------------------------------------------------------------
+    # 1. GUNAKAN ARGPARSE UNTUK MEMBACA ARGUMEN BERNAMA
+    # ------------------------------------------------------------------------
+    parser = argparse.ArgumentParser()
+    # Definisikan semua parameter yang akan diterima dari MLproject
+    parser.add_argument("--n_estimators", type=int, default=300)
+    parser.add_argument("--max_depth", type=int, default=15)
+    args = parser.parse_args() # Ini akan membaca nilai setelah --key
+    
+    warnings.filterwarnings("ignore")
     RANDOM_STATE = 42
     np.random.seed(RANDOM_STATE)
     
-    # ------------------------------------------------------------------------
-    # 1. Menerima Parameter dari Command Line (sys.argv)
-    # ------------------------------------------------------------------------
-    
-    if len(sys.argv) < 3: # Hanya butuh 2 argumen: n_estimators dan max_depth
-        print("FATAL ERROR: Jumlah argumen tidak sesuai (Membutuhkan n_estimators dan max_depth).")
-        sys.exit(1)
-    else:
-        # Mengambil nilai yang dilewatkan dari MLproject
-        n_estimators = int(sys.argv[1])
-        max_depth = int(sys.argv[2])
-    
+    n_estimators = args.n_estimators # Ambil dari argparse
+    max_depth = args.max_depth       # Ambil dari argparse
+
     # ------------------------------------------------------------------------
     # 2. FIX PATH: Membangun jalur file secara absolut
     # ------------------------------------------------------------------------
     
-    # GITHUB_WORKSPACE adalah root repository di runner CI
     GITHUB_ROOT = os.environ.get('GITHUB_WORKSPACE', os.getcwd()) 
-    # Path file relatif dari root repository (Workflow-CI/)
     RELATIVE_DATA_PATH = "MLproject/dataset_preprocessing/preprocessed_data.csv"
     file_path = os.path.join(GITHUB_ROOT, RELATIVE_DATA_PATH)
     
@@ -97,6 +96,7 @@ if __name__ == "__main__":
         print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {file_path}. Gagal Memuat.")
         sys.exit(1)
         
+   
     # --- 4. Split Data dan Training ---
     
     # Pisahkan Fitur (X) dan Target (y) - KOREKSI NAMA KOLOM TARGET
