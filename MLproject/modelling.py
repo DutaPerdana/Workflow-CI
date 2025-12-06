@@ -99,10 +99,12 @@ if __name__ == "__main__":
         print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {file_path}. Gagal Memuat.")
         sys.exit(1)
         
-    # Pisahkan Fitur (X) dan Target (y) - ASUMSI
+    # Pisahkan Fitur (X) dan Target (y) - PERBAIKI NAMA KOLOM TARGET
     X_train, X_test, y_train, y_test = train_test_split(
-        data.drop("Credit_Score", axis=1), 
-        data["Credit_Score"],
+        # Drop kolom target yang BENAR: Status_Resiko
+        data.drop("Status_Resiko", axis=1), 
+        # Target yang BENAR: Status_Resiko
+        data["Status_Resiko"], 
         random_state=42,
         test_size=0.2
     )
