@@ -57,7 +57,6 @@ def eval_and_log_manual(model, X_test, y_test, run_id, input_example=None):
         input_example=input_example,
         registered_model_name="credit_scoring_ci_model" 
     )
-
     return accuracy
 
 if __name__ == "__main__":
@@ -70,22 +69,23 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------------
     
     if len(sys.argv) < 4:
-        # Jika argumen kurang, kita tetap gunakan path relatif yang diharapkan MLflow
-        n_estimators = 300 
-        max_depth = 15
-        data_path = "dataset_preprocessing/preprocessed_data.csv" # Path relatif dari MLproject/
-        print("MENGGUNAKAN PATH HARDCODE LOKAL.")
-    else:
-        # Mengambil nilai yang dilewatkan dari MLproject
-        n_estimators = int(sys.argv[1])
-        max_depth = int(sys.argv[2])
-        data_path = sys.argv[3] # Path yang dilewatkan dari MLproject/MLproject
+        # Ini hanya terjadi jika MLproject gagal, dan script dijalankan secara manual tanpa argumen
+        print("FATAL ERROR: Jumlah argumen tidak sesuai (Membutuhkan 3 argumen: n_estimators, max_depth, data_path).")
+        sys.exit(1)
+        
+    # Mengambil nilai yang dilewatkan dari MLproject
+    n_estimators = int(sys.argv[1])
+    max_depth = int(sys.argv[2])
+    data_path = sys.argv[3] 
     
-    print(f"CI Run Parameters: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={data_path}")
+    # NOTE: Kita tidak perlu set_tracking_uri karena MLflow run akan melacak ke ./mlruns
+    mlflow.set_experiment("CI Workflow Credit Scoring") 
+    
+    print(f"CI Run Parameters: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={data_path} (CWD: {os.getcwd()})")
 
     # --- 2. Pemuatan Data ---
-    # Gunakan jalur yang dilewatkan
     try:
+        # Jalur data sekarang seharusnya sudah benar relatif terhadap CWD (MLproject/)
         data = pd.read_csv(data_path) 
     except FileNotFoundError:
         print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {data_path}. Gagal Memuat.")
@@ -99,15 +99,16 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, random_state=42, test_size=0.2, stratify=y
     )
-
-    # Ambil contoh input untuk log_model
     input_example = X_train.head(5)
 
     # --- 3. Memulai MLflow Run (Single Run CI) ---
-    mlflow.set_experiment("CI Workflow Credit Scoring") 
+    # TIDAK MENGGUNAKAN 'with mlflow.start_run()' karena sudah dimulai oleh mlflow run
     
-    with mlflow.start_run(run_name=f"CI_n{n_estimators}_d{max_depth}") as run:
+    # Ambil Run ID yang sudah aktif
+    with mlflow.start_run() as run:
         run_id = run.info.run_id
+        
+        mlflow.set_tag("mlflow.runName", f"CI_n{n_estimators}_d{max_depth}")
         
         # Log Parameter Secara Manual
         mlflow.log_param("n_estimators", n_estimators)
