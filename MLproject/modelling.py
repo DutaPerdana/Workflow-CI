@@ -70,24 +70,31 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------------
     
     if len(sys.argv) < 4:
-        # Nilai default jika dijalankan tanpa argumen (misalnya saat testing lokal)
-        n_estimators = 300 
-        max_depth = 15
-        data_path = "MLproject/dataset_preprocessing/preprocessed_data.csv"
-    else:
-        # Mengambil nilai yang dilewatkan dari MLproject
-        n_estimators = int(sys.argv[1])
-        max_depth = int(sys.argv[2])
-        data_path = sys.argv[3]
+        # Jika argumen kurang, ini adalah kegagalan fatal di CI
+        print("FATAL ERROR: Jumlah argumen tidak sesuai. Periksa file MLproject.")
+        sys.exit(1)
+        
+    # Mengambil nilai yang dilewatkan dari MLproject
+    n_estimators = int(sys.argv[1])
+    max_depth = int(sys.argv[2])
+    data_path = sys.argv[3] # Ambil path yang dilewatkan MLproject
+    
+    # TINGGALKAN tracking_uri di sini karena CI akan melacak ke folder lokal
+    # ...
     
     print(f"CI Run Parameters: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={data_path}")
 
     # --- 2. Pemuatan Data ---
+    # Gunakan jalur yang dilewatkan. MLflow memastikan file ini tersedia 
+    # di direktori kerja (root) runner.
     try:
+        # Kita perlu sedikit penyesuaian agar Pandas bisa membaca jalur di runner GitHub
+        # (Jalur yang diteruskan dari MLproject harus disederhanakan)
+        # Kita berasumsi data_path yang dilewatkan adalah path relatif yang benar.
         data = pd.read_csv(data_path) 
     except FileNotFoundError:
         print(f"ERROR: File data preprocessing tidak ditemukan di {data_path}. Gagal Memuat.")
-        sys.exit(1) # Keluar dengan kode error 1
+        sys.exit(1)
         
     # Pisahkan Fitur (X) dan Target (y) - ASUMSI
     X = data.drop("Status_Resiko", axis=1) 
