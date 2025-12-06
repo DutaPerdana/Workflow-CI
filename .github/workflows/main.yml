@@ -29,8 +29,7 @@ jobs:
         run: |
           python MLproject/modelling.py \
             --n_estimators 300 \
-            --max_depth 15 \
-            --data_path MLproject/dataset_preprocessing/preprocessed_data.csv
+            --max_depth 15 
 
       # 4. [SKILLED REQUIREMENT] Simpan Artefak mlruns/ ke Repository GitHub
       - name: Commit MLflow Artifacts (mlruns)
