@@ -11,10 +11,9 @@ entry_points:
     parameters:
       n_estimators: {type: int, default: 300}
       max_depth: {type: int, default: 15}
-      dataset_path: {type: string, default: "dataset_preprocessing/preprocessed_data.csv"}
 
     # Perintah untuk menjalankan modelling.py menggunakan parameter
     # Argumen 1: n_estimators
     # Argumen 2: max_depth
     # Argumen 3: dataset_path
-    command: "python modelling.py ${n_estimators} ${max_depth} ${dataset_path}"
+    command: "python modelling.py ${n_estimators} ${max_depth} dataset_preprocessing/preprocessed_data.csv"

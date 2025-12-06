@@ -70,32 +70,25 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------------
     
     if len(sys.argv) < 4:
-        # Nilai default untuk pengujian lokal jika argumen tidak lengkap
+        # Jika argumen kurang, kita tetap gunakan path relatif yang diharapkan MLflow
         n_estimators = 300 
         max_depth = 15
-        # PATH DISELERASKAN DENGAN FOLDER ANDA
-        data_path = "MLproject/dataset_preprocessing/preprocessed_data.csv" 
+        data_path = "dataset_preprocessing/preprocessed_data.csv" # Path relatif dari MLproject/
+        print("MENGGUNAKAN PATH HARDCODE LOKAL.")
     else:
         # Mengambil nilai yang dilewatkan dari MLproject
         n_estimators = int(sys.argv[1])
         max_depth = int(sys.argv[2])
-        data_path = sys.argv[3]
+        data_path = sys.argv[3] # Path yang dilewatkan dari MLproject/MLproject
     
     print(f"CI Run Parameters: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={data_path}")
 
     # --- 2. Pemuatan Data ---
+    # Gunakan jalur yang dilewatkan
     try:
-        # PENTING: Jika script dijalankan dari root MLproject/,
-        # jalur yang benar adalah yang dilewatkan di data_path
         data = pd.read_csv(data_path) 
     except FileNotFoundError:
-        # Jika masih gagal, mungkin masalah CWD. Coba path absolut
-        full_path = os.path.join(os.getcwd(), data_path)
-        
-        # PENTING: Jika runner mengubah CWD ke root repository, data_path perlu diubah:
-        # Contoh: full_path = os.path.join(os.environ['GITHUB_WORKSPACE'], data_path)
-        
-        print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {data_path} (CWD: {os.getcwd()}).")
+        print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {data_path}. Gagal Memuat.")
         sys.exit(1)
         
     # Pisahkan Fitur (X) dan Target (y) - ASUMSI
