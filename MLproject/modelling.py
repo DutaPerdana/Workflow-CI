@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # Menerima argumen dan menggunakan nilai default jika argumen kosong
     n_estimators = int(sys.argv[1]) if len(sys.argv) > 1 else 300
     max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else 15
-    data_path = sys.argv[3] if len(sys.argv) > 3 else "namadataset_preprocessing/preprocessed_data.csv"
+    data_path = sys.argv[3] if len(sys.argv) > 3 else "dataset_preprocessing/preprocessed_data.csv"
     
     print(f"CI Run: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={data_path}")
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     # --- 3. Memulai MLflow Run (Single Run, bukan loop tuning penuh) ---
     # Kita hanya menjalankan satu run representatif di CI
     
-    mlflow.set_experiment("CI Workflow Credit Scoring") 
+    mlflow.set_experiment("CI Workflow Resiko Kesehatan") 
     
     with mlflow.start_run(run_name=f"CI_Run_n{n_estimators}_d{max_depth}") as run:
         run_id = run.info.run_id
