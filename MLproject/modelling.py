@@ -7,17 +7,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 )
-import itertools
 import warnings
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-import sys # WAJIB: Untuk membaca argumen command line
+import sys 
 
 warnings.filterwarnings("ignore")
 
-# --- 1. Fungsi Evaluasi dan Manual Logging ---
-def eval_and_log_manual(model, X_test, y_test, run_id, log_model_flag=False, input_example=None):
+# --- Fungsi Evaluasi dan Manual Logging ---
+def eval_and_log_manual(model, X_test, y_test, run_id, input_example=None):
     """Menghitung metrik dan mencatat semuanya secara manual ke MLflow."""
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1]
@@ -51,41 +50,45 @@ def eval_and_log_manual(model, X_test, y_test, run_id, log_model_flag=False, inp
     os.remove(cm_path)
     plt.close()
 
-    # Log Model (Hanya untuk model terbaik)
-    if log_model_flag:
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="model",
-            input_example=input_example,
-            registered_model_name="credit_scoring_rf_manual" 
-        )
+    # Log Model Terbaik
+    mlflow.sklearn.log_model(
+        sk_model=model,
+        artifact_path="model",
+        input_example=input_example,
+        registered_model_name="credit_scoring_ci_model" 
+    )
 
     return accuracy
 
 if __name__ == "__main__":
     
-    # ------------------------------------------------------------------------
-    # WAJIB: Menerima Parameter dari Command Line (sys.argv)
-    # Parameter akan dilewatkan oleh MLproject: n_estimators, max_depth, dataset_path
-    # ------------------------------------------------------------------------
-    
     warnings.filterwarnings("ignore")
     np.random.seed(42)
     
-    # Menerima argumen dan menggunakan nilai default jika argumen kosong
-    n_estimators = int(sys.argv[1]) if len(sys.argv) > 1 else 300
-    max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else 15
-    data_path = sys.argv[3] if len(sys.argv) > 3 else "dataset_preprocessing/preprocessed_data.csv"
+    # ------------------------------------------------------------------------
+    # Menerima Parameter dari Command Line (sys.argv)
+    # ------------------------------------------------------------------------
     
-    print(f"CI Run: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={data_path}")
+    if len(sys.argv) < 4:
+        # Nilai default jika dijalankan tanpa argumen (misalnya saat testing lokal)
+        n_estimators = 300 
+        max_depth = 15
+        data_path = "MLproject/dataset_preprocessing/preprocessed_data.csv"
+    else:
+        # Mengambil nilai yang dilewatkan dari MLproject
+        n_estimators = int(sys.argv[1])
+        max_depth = int(sys.argv[2])
+        data_path = sys.argv[3]
+    
+    print(f"CI Run Parameters: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={data_path}")
 
     # --- 2. Pemuatan Data ---
     try:
-        data = pd.read_csv(data_path)
+        data = pd.read_csv(data_path) 
     except FileNotFoundError:
-        print(f"ERROR: File data preprocessing tidak ditemukan di {data_path}.")
-        sys.exit(1)
-
+        print(f"ERROR: File data preprocessing tidak ditemukan di {data_path}. Gagal Memuat.")
+        sys.exit(1) # Keluar dengan kode error 1
+        
     # Pisahkan Fitur (X) dan Target (y) - ASUMSI
     X = data.drop("Status_Resiko", axis=1) 
     y = data["Status_Resiko"]
@@ -98,33 +101,28 @@ if __name__ == "__main__":
     # Ambil contoh input untuk log_model
     input_example = X_train.head(5)
 
-    # --- 3. Memulai MLflow Run (Single Run, bukan loop tuning penuh) ---
-    # Kita hanya menjalankan satu run representatif di CI
+    # --- 3. Memulai MLflow Run (Single Run CI) ---
+    mlflow.set_experiment("CI Workflow Credit Scoring") 
     
-    mlflow.set_experiment("CI Workflow Resiko Kesehatan") 
-    
-    with mlflow.start_run(run_name=f"CI_Run_n{n_estimators}_d{max_depth}") as run:
+    with mlflow.start_run(run_name=f"CI_n{n_estimators}_d{max_depth}") as run:
         run_id = run.info.run_id
         
-        # 4. Model Training
+        # Log Parameter Secara Manual
+        mlflow.log_param("n_estimators", n_estimators)
+        mlflow.log_param("max_depth", max_depth)
+        mlflow.log_param("data_source", data_path)
+        
+        # Model Training
         model = RandomForestClassifier(
             n_estimators=n_estimators, 
             max_depth=max_depth, 
             random_state=42
         )
-        
-        # 5. Catat Parameter Secara Manual
-        mlflow.log_param("n_estimators", n_estimators)
-        mlflow.log_param("max_depth", max_depth)
-        mlflow.log_param("data_source", data_path)
-        
-        # 6. Training
         model.fit(X_train, y_train)
         
-        # 7. Evaluasi dan Log (Manual)
+        # Evaluasi dan Log Artefak Model
         current_accuracy = eval_and_log_manual(
             model, X_test, y_test, run_id, 
-            log_model_flag=True, # Langsung simpan model ini
             input_example=input_example
         )
         
