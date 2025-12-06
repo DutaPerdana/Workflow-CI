@@ -17,4 +17,4 @@ entry_points:
     # Argumen 1: n_estimators
     # Argumen 2: max_depth
     # Argumen 3: dataset_path
-    command: "python MLproject/modelling.py ${n_estimators} ${max_depth} ${dataset_path}"
+    command: "python modelling.py ${n_estimators} ${max_depth} ${dataset_path}"
