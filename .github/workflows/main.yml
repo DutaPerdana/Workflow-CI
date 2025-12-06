@@ -7,34 +7,34 @@ on:
   workflow_dispatch:
 
 jobs:
-  train_model:
+  train-model:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
       
       # 1. Setup Python Environment
-      - name: Set up Python 3.12.7
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12.7'
+          python-version: '3.10'
           
-      # 2. Instal MLflow dan Dependencies
+      # 2. Instal Dependencies (Semua harus diinstal di sini karena tidak pakai conda.yaml)
       - name: Install Dependencies
         run: |
-          pip install mlflow
-          pip install -r MLproject/requirements.txt || true # Atau gunakan conda.yaml jika perlu
+          pip install mlflow scikit-learn pandas numpy matplotlib seaborn argparse cloudpickle
           
-      # 3. Jalankan MLflow Project (Re-training)
-      - name: Run MLflow Project and Train Model
+      # 3. Jalankan Script Training (WAJIB: Menggunakan argumen eksplisit)
+      - name: Run Model Training
         run: |
-          # Perintah ini menjalankan modelling.py dengan parameter default dari MLproject
-          mlflow run ./MLproject --env-manager=local
+          python MLproject/modelling.py \
+            --n_estimators 300 \
+            --max_depth 15 \
+            --data_path MLproject/dataset_preprocessing/preprocessed_data.csv
 
       # 4. [SKILLED REQUIREMENT] Simpan Artefak mlruns/ ke Repository GitHub
       - name: Commit MLflow Artifacts (mlruns)
         run: |
-          # Konfigurasi Git Identity
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           

@@ -1,18 +1,10 @@
 # MLproject/MLproject
 name: Resiko-Kesehatan-CI-Project
 
-# Definisikan lingkungan yang akan digunakan (mengacu pada conda.yaml)
-environment: conda.yaml
-
-# Definisikan entry point untuk menjalankan training
+conda_env: conda.yaml
 entry_points:
   main:
-    # Definisikan parameter yang akan dilewatkan ke modelling.py
     parameters:
       n_estimators: {type: int, default: 300}
       max_depth: {type: int, default: 15}
-
-    # Perintah untuk menjalankan modelling.py menggunakan parameter
-    # Argumen 1: n_estimators
-    # Argumen 2: max_depth
     command: "python modelling.py ${n_estimators} ${max_depth}"
