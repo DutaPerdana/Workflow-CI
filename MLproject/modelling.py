@@ -89,7 +89,13 @@ if __name__ == "__main__":
         # jalur yang benar adalah yang dilewatkan di data_path
         data = pd.read_csv(data_path) 
     except FileNotFoundError:
-        print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {data_path}. Gagal Memuat.")
+        # Jika masih gagal, mungkin masalah CWD. Coba path absolut
+        full_path = os.path.join(os.getcwd(), data_path)
+        
+        # PENTING: Jika runner mengubah CWD ke root repository, data_path perlu diubah:
+        # Contoh: full_path = os.path.join(os.environ['GITHUB_WORKSPACE'], data_path)
+        
+        print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {data_path} (CWD: {os.getcwd()}).")
         sys.exit(1)
         
     # Pisahkan Fitur (X) dan Target (y) - ASUMSI
