@@ -1,11 +1,9 @@
 # .github/workflows/main.yml
-name: MLflow CI/CD Pipeline - Retraining
+name: Kriteria 3 CI Setup
 
 on:
-  # Trigger workflow ini setiap kali ada push ke branch 'main'
   push:
     branches: [ "main" ]
-  # Atau trigger secara manual
   workflow_dispatch:
 
 jobs:
@@ -13,42 +11,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout kode repository
       - uses: actions/checkout@v4
       
-      # 2. Setup Python Environment
-      - name: Set up Python 3.12.7
+      # 1. Setup Python Environment
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12.7'
-          cache: 'pip' # Mempercepat instalasi
-
-      # 3. Instal MLflow dan Dependencies
+          python-version: '3.10'
+          
+      # 2. Instal MLflow dan Dependencies
       - name: Install Dependencies
         run: |
           pip install mlflow
-          pip install -r MLproject/requirements.txt || true # Instal jika ada requirements.txt tambahan
+          pip install -r MLproject/requirements.txt || true # Atau gunakan conda.yaml jika perlu
           
-      # 4. Jalankan MLflow Project (Re-training)
-      # Ini akan membaca MLproject/MLproject dan menggunakan MLproject/conda.yaml
-      # Artefak (mlruns) akan tersimpan secara lokal di runner
+      # 3. Jalankan MLflow Project (Re-training)
       - name: Run MLflow Project and Train Model
         run: |
+          # Perintah ini menjalankan modelling.py dengan parameter default dari MLproject
           mlflow run ./MLproject --env-manager=local
 
-      # 5. [SKILLED REQUIREMENT] Simpan Artefak mlruns/ ke Repository GitHub
-      # Langkah ini menggunakan token GITHUB_TOKEN bawaan untuk commit.
+      # 4. [SKILLED REQUIREMENT] Simpan Artefak mlruns/ ke Repository GitHub
       - name: Commit MLflow Artifacts (mlruns)
         run: |
           # Konfigurasi Git Identity
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Tambahkan folder mlruns ke staging
+          # Tambahkan folder mlruns/
           git add mlruns/
           
-          # Commit jika ada perubahan (|| true untuk mencegah gagal jika tidak ada perubahan)
-          git commit -m "CI: Save MLflow artifacts after retraining job" || true
+          # Commit jika ada perubahan
+          git commit -m "CI: Kriteria 3 Skilled - Save MLflow artifacts (mlruns)" || true
           
           # Push perubahan (artefak) ke branch main
           git push

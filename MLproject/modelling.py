@@ -16,6 +16,7 @@ import sys
 warnings.filterwarnings("ignore")
 
 # --- Fungsi Evaluasi dan Manual Logging ---
+# Fungsi ini mencakup semua metrik yang dicakup oleh autolog (dan lebih)
 def eval_and_log_manual(model, X_test, y_test, run_id, input_example=None):
     """Menghitung metrik dan mencatat semuanya secara manual ke MLflow."""
     y_pred = model.predict(X_test)
@@ -31,7 +32,7 @@ def eval_and_log_manual(model, X_test, y_test, run_id, input_example=None):
     except ValueError:
         auc_roc = 0.0
 
-    # Log Metrik Secara Manual
+    # Log Metrik Secara Manual (WAJIB SKILLED)
     mlflow.log_metric("accuracy", accuracy)
     mlflow.log_metric("precision", precision)
     mlflow.log_metric("recall", recall)
@@ -68,52 +69,56 @@ if __name__ == "__main__":
     # Menerima Parameter dari Command Line (sys.argv)
     # ------------------------------------------------------------------------
     
-    if len(sys.argv) < 4:
-        # Ini hanya terjadi jika MLproject gagal, dan script dijalankan secara manual tanpa argumen
-        print("FATAL ERROR: Jumlah argumen tidak sesuai (Membutuhkan 3 argumen: n_estimators, max_depth, data_path).")
+    if len(sys.argv) < 3: # Hanya butuh n_estimators dan max_depth
+        print("FATAL ERROR: Jumlah argumen tidak sesuai (Membutuhkan n_estimators dan max_depth).")
         sys.exit(1)
         
     # Mengambil nilai yang dilewatkan dari MLproject
     n_estimators = int(sys.argv[1])
     max_depth = int(sys.argv[2])
-    data_path = sys.argv[3] 
     
-    # NOTE: Kita tidak perlu set_tracking_uri karena MLflow run akan melacak ke ./mlruns
-    mlflow.set_experiment("CI Workflow Credit Scoring") 
+    # ------------------------------------------------------------------------
+    # WAJIB FIX PATH: Membangun jalur file secara absolut
+    # ------------------------------------------------------------------------
     
-    print(f"CI Run Parameters: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={data_path} (CWD: {os.getcwd()})")
+    # GITHUB_ROOT adalah root repository di runner CI
+    GITHUB_ROOT = os.environ.get('GITHUB_WORKSPACE', os.getcwd()) 
+    
+    # Lokasi file data relatif terhadap root repository (Workflow-CI/)
+    RELATIVE_DATA_PATH = "MLproject/dataset_preprocessing/preprocessed_data.csv"
+    
+    # Buat path absolut
+    file_path = os.path.join(GITHUB_ROOT, RELATIVE_DATA_PATH)
+    
+    print(f"CI Run Parameters: n_estimators={n_estimators}, max_depth={max_depth}, Data Path={file_path}")
 
     # --- 2. Pemuatan Data ---
     try:
-        # Jalur data sekarang seharusnya sudah benar relatif terhadap CWD (MLproject/)
-        data = pd.read_csv(data_path) 
+        data = pd.read_csv(file_path) 
     except FileNotFoundError:
-        print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {data_path}. Gagal Memuat.")
+        print(f"ERROR FATAL: File data preprocessing tidak ditemukan di {file_path}. Gagal Memuat.")
         sys.exit(1)
         
     # Pisahkan Fitur (X) dan Target (y) - ASUMSI
-    X = data.drop("Status_Resiko", axis=1) 
-    y = data["Status_Resiko"]
-
-    # Train-Test Split (untuk evaluasi)
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, random_state=42, test_size=0.2, stratify=y
+        data.drop("Credit_Score", axis=1), 
+        data["Credit_Score"],
+        random_state=42,
+        test_size=0.2
     )
     input_example = X_train.head(5)
 
     # --- 3. Memulai MLflow Run (Single Run CI) ---
-    # TIDAK MENGGUNAKAN 'with mlflow.start_run()' karena sudah dimulai oleh mlflow run
+    mlflow.set_experiment("CI Workflow Credit Scoring") 
     
-    # Ambil Run ID yang sudah aktif
-    with mlflow.start_run() as run:
+    # Log Run
+    with mlflow.start_run(run_name=f"CI_n{n_estimators}_d{max_depth}") as run:
         run_id = run.info.run_id
-        
-        mlflow.set_tag("mlflow.runName", f"CI_n{n_estimators}_d{max_depth}")
         
         # Log Parameter Secara Manual
         mlflow.log_param("n_estimators", n_estimators)
         mlflow.log_param("max_depth", max_depth)
-        mlflow.log_param("data_source", data_path)
+        mlflow.log_param("data_source", RELATIVE_DATA_PATH)
         
         # Model Training
         model = RandomForestClassifier(
