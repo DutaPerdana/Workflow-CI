@@ -10,7 +10,6 @@ jobs:
   train-model:
     runs-on: ubuntu-latest
 
-    # WAJIB FIX: Berikan izin tulis (write) pada konten repository
     permissions:
       contents: write
 
@@ -28,7 +27,7 @@ jobs:
         run: |
           pip install mlflow scikit-learn pandas numpy matplotlib seaborn argparse cloudpickle
           
-      # 3. Jalankan Script Training (WAJIB: Menggunakan argumen eksplisit)
+      # 3. Jalankan Script Training
       - name: Run Model Training
         run: |
           python MLproject/modelling.py \

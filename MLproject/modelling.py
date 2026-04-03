@@ -1,4 +1,4 @@
-# MLproject/modelling.py (Final Versi untuk Kriteria 3 CI Skilled)
+
 import mlflow
 import pandas as pd
 import numpy as np
@@ -14,6 +14,7 @@ import os
 import argparse
 import sys 
 
+# update final
 warnings.filterwarnings("ignore")
 
 # --- Fungsi Evaluasi dan Manual Logging ---
@@ -32,7 +33,7 @@ def eval_and_log_manual(model, X_test, y_test, run_id, input_example=None):
     except ValueError:
         auc_roc = 0.0
 
-    # Log Metrik Secara Manual (WAJIB SKILLED)
+    # Log Metrik Secara Manual 
     mlflow.log_metric("accuracy", accuracy)
     mlflow.log_metric("precision", precision)
     mlflow.log_metric("recall", recall)
@@ -63,15 +64,12 @@ def eval_and_log_manual(model, X_test, y_test, run_id, input_example=None):
 if __name__ == "__main__":
     
     warnings.filterwarnings("ignore")
-    # HARDCODE random_state untuk reproducibility di CI
-# ------------------------------------------------------------------------
-    # 1. GUNAKAN ARGPARSE UNTUK MEMBACA ARGUMEN BERNAMA
-    # ------------------------------------------------------------------------
+
     parser = argparse.ArgumentParser()
-    # Definisikan semua parameter yang akan diterima dari MLproject
+
     parser.add_argument("--n_estimators", type=int, default=300)
     parser.add_argument("--max_depth", type=int, default=15)
-    args = parser.parse_args() # Ini akan membaca nilai setelah --key
+    args = parser.parse_args() 
     
     warnings.filterwarnings("ignore")
     RANDOM_STATE = 42
@@ -80,9 +78,6 @@ if __name__ == "__main__":
     n_estimators = args.n_estimators # Ambil dari argparse
     max_depth = args.max_depth       # Ambil dari argparse
 
-    # ------------------------------------------------------------------------
-    # 2. FIX PATH: Membangun jalur file secara absolut
-    # ------------------------------------------------------------------------
     
     GITHUB_ROOT = os.environ.get('GITHUB_WORKSPACE', os.getcwd()) 
     RELATIVE_DATA_PATH = "MLproject/dataset_preprocessing/preprocessed_data.csv"
@@ -100,20 +95,20 @@ if __name__ == "__main__":
    
     # --- 4. Split Data dan Training ---
     
-    # Pisahkan Fitur (X) dan Target (y) - KOREKSI NAMA KOLOM TARGET
+    # Pisahkan Fitur (X) dan Target (y) - K
     X = data.drop("Status_Resiko", axis=1) 
     y = data["Status_Resiko"]
 
-    # Train-Test Split (menggunakan RANDOM_STATE yang di-hardcode)
+    # Train-Test Split 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, random_state=RANDOM_STATE, test_size=0.2, stratify=y
     )
     input_example = X_train.head(5)
 
-    # --- 5. Memulai MLflow Run (Tanpa 'with mlflow.start_run()' yang konflik) ---
+    # --- 5. Memulai MLflow Run 
     mlflow.set_experiment("CI Workflow Resiko Kesehatan") 
     
-    # Ambil Run ID aktif yang sudah dimulai oleh MLflow Project Runner
+    # Ambil Run ID aktif 
     with mlflow.start_run() as run:
         run_id = run.info.run_id
         
